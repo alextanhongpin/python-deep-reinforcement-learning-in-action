@@ -213,15 +213,16 @@ from IPython import display
 
 env = gym.make("CartPole-v1", render_mode="rgb_array")
 env.reset()
-
-for i in range(25):
-    plt.imshow(env.render())
+img = plt.imshow(env.render())  # Just call this once.
+for i in range(100):
+    img.set_data(env.render())
+    # plt.imshow(env.render())
     display.display(plt.gcf())
     display.clear_output(wait=True)
     env.step(env.action_space.sample())  # take a random action
 
 env.close()
-print('done')
+print("done")
 ```
 
     done
@@ -231,6 +232,82 @@ print('done')
     
 ![png](00_setup_files/00_setup_18_1.png)
     
+
+
+
+```python
+from collections import namedtuple
+
+Transition = namedtuple("Transition", ["state", "action", "reward"])
+
+t = Transition("up", 1, 10)
+t.state
+```
+
+
+
+
+    'up'
+
+
+
+
+```python
+transitions = [Transition("up", i, 10) for i in range(10)]
+transitions
+```
+
+
+
+
+    [Transition(state='up', action=0, reward=10),
+     Transition(state='up', action=1, reward=10),
+     Transition(state='up', action=2, reward=10),
+     Transition(state='up', action=3, reward=10),
+     Transition(state='up', action=4, reward=10),
+     Transition(state='up', action=5, reward=10),
+     Transition(state='up', action=6, reward=10),
+     Transition(state='up', action=7, reward=10),
+     Transition(state='up', action=8, reward=10),
+     Transition(state='up', action=9, reward=10)]
+
+
+
+
+```python
+batch = Transition(*zip(*transitions))
+batch
+```
+
+
+
+
+    Transition(state=('up', 'up', 'up', 'up', 'up', 'up', 'up', 'up', 'up', 'up'), action=(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), reward=(10, 10, 10, 10, 10, 10, 10, 10, 10, 10))
+
+
+
+
+```python
+batch.state
+```
+
+
+
+
+    ('up', 'up', 'up', 'up', 'up', 'up', 'up', 'up', 'up', 'up')
+
+
+
+
+```python
+batch.action
+```
+
+
+
+
+    (0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+
 
 
 
