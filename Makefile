@@ -1,14 +1,14 @@
 kernel:
-	python -m pip install ipykernel
-	python -m ipykernel install --user
+	python3 -m pip install ipykernel
+	python3 -m ipykernel install --user
 
 setup-formatter:
 	poetry add jupyterlab-code-formatter
 	poetry add black isort
-	jupyter nbextension enable --py widgetsnbextension
+	# Go to Settings > Settings Editor > JSON Settings Editor (Top Right) > JupyterLab Code Formatter > {"formatOnSave": true}
 
 jupyter:
-	poetry run jupyter-lab
+	poetry run jupyter lab
 
 convert_all:
 	# jupytext doesn't preserve image.
