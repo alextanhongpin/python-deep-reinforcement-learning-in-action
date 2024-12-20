@@ -34,22 +34,24 @@ for _ in range(10):
     print(ma.add(random.randint(0, 5) + 5))
 ```
 
-    9.0
-    8.5
-    8.333333333333334
     8.0
-    7.6
-    7.833333333333333
-    7.857142857142857
-    7.5
-    7.777777777777778
-    7.6
+    6.5
+    6.333333333333333
+    7.25
+    6.8
+    7.0
+    7.142857142857143
+    7.375
+    7.111111111111111
+    7.3
 
 
 
 ```python
 class Bandit:
-    def __init__(self, n_arms=10):
+    def __init__(self, n_arms=10, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
         self.n_arms = n_arms
         self.probs = np.random.random(n_arms)
         self.pulls = np.zeros(self.n_arms)
@@ -61,8 +63,11 @@ class Bandit:
             reward += random.random() < prob
         return reward
 
+    def policy(self):
+        return random.randrange(0, self.n_arms)
+
     def pull(self):
-        arm = random.randrange(0, self.n_arms)
+        arm = self.policy()
         reward = self.reward(self.probs[arm])
         pulls = self.pulls[arm]
         mean_reward = self.rewards[arm]
@@ -74,26 +79,17 @@ class Bandit:
 
 
 class GreedyBandit(Bandit):
-    def pull(self, e_greedy=0.2):
+    def policy(self, e_greedy=0.2):
         if random.random() < e_greedy:
             arm = random.randrange(0, self.n_arms)
         else:
             arm = np.argmax(self.rewards)
-        reward = self.reward(self.probs[arm])
-        pulls = self.pulls[arm]
-        mean_reward = self.rewards[arm]
-        mean_reward = (pulls * mean_reward + reward) / (pulls + 1)
-        self.rewards[arm] = mean_reward
-        self.pulls[arm] = pulls + 1
-
-        return mean_reward
+        return arm
 ```
 
 
 ```python
-random.seed(42)
-np.random.seed(42)
-bandit = Bandit(10)
+bandit = Bandit(10, seed=42)
 trials = 1000
 rewards = []
 ma = MovingAverage()
@@ -116,9 +112,7 @@ ax.set_ylabel("Average rewards");
 
 
 ```python
-random.seed(42)
-np.random.seed(42)
-bandit = GreedyBandit(10)
+bandit = GreedyBandit(10, seed=42)
 trials = 1000
 rewards = []
 ma = MovingAverage()
@@ -138,8 +132,6 @@ ax.set_ylabel("Average rewards");
 ![png](02_markov_decision_process_files/02_markov_decision_process_8_0.png)
     
 
-
-## 
 
 ## The softmax function
 
@@ -212,25 +204,16 @@ np.sum(softmax(np.arange(10)))
 
 ```python
 class SoftmaxBandit(Bandit):
-    def pull(self, tau=1.12):
+    def policy(self, tau=1.12):
         arms = np.arange(self.n_arms)
         p = softmax(self.rewards, tau=tau)
         arm = np.random.choice(arms, p=p)
-        reward = self.reward(self.probs[arm])
-        pulls = self.pulls[arm]
-        mean_reward = self.rewards[arm]
-        mean_reward = (pulls * mean_reward + reward) / (pulls + 1)
-        self.rewards[arm] = mean_reward
-        self.pulls[arm] = pulls + 1
-
-        return mean_reward
+        return arm
 ```
 
 
 ```python
-random.seed(42)
-np.random.seed(42)
-bandit = SoftmaxBandit(10)
+bandit = SoftmaxBandit(10, seed=42)
 trials = 1000
 rewards = []
 ma = MovingAverage()
@@ -247,6 +230,6 @@ ax.set_ylabel("Average rewards");
 
 
     
-![png](02_markov_decision_process_files/02_markov_decision_process_17_0.png)
+![png](02_markov_decision_process_files/02_markov_decision_process_16_0.png)
     
 
