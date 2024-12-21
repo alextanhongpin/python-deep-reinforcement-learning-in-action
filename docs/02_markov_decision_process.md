@@ -8,6 +8,8 @@ import random
 
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
+import torch.nn.functional as F
 ```
 
 Defining the reward function
@@ -233,3 +235,131 @@ ax.set_ylabel("Average rewards");
 ![png](02_markov_decision_process_files/02_markov_decision_process_16_0.png)
     
 
+
+## Contextual Bandit
+
+
+```python
+class ContextualBandit:
+    def __init__(self, n_arms=10, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
+        self.n_arms = n_arms
+        self.states = np.random.rand(n_arms, n_arms)
+        self.reset()
+
+    def reset(self):
+        """randomize the state. by right, there should be
+        a way to infer which state (context) the bandit is currently in"""
+        self.state = np.random.randint(0, self.n_arms)
+
+    def reward(self, prob):
+        reward = 0
+        for _ in range(self.n_arms):
+            if np.random.rand() < prob:
+                reward += 1
+        return reward
+
+    def pull(self, arm):
+        prob = self.states[self.state][arm]
+        return self.reward(prob)
+```
+
+
+```python
+bandit = ContextualBandit(seed=42)
+bandit.pull(2), bandit.state
+```
+
+
+
+
+    (9, 6)
+
+
+
+
+```python
+n_arms = 10
+hidden = 100
+
+model = torch.nn.Sequential(
+    torch.nn.Linear(n_arms, hidden),
+    torch.nn.ReLU(),
+    torch.nn.Linear(hidden, n_arms),
+    torch.nn.ReLU(),
+)
+loss_fn = torch.nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+softmax = torch.nn.Softmax()
+```
+
+
+```python
+epochs = 5000
+rewards = []
+
+env = ContextualBandit()
+
+for i in range(epochs):
+    if i % 1000 == 0:
+        print(i)
+    env.reset()
+
+    # One-hot encoding converts the tensor to Long, we need to convert it back to Float.
+    state = F.one_hot(torch.tensor(env.state), num_classes=n_arms).view(1, -1).float()
+    y_pred = model(state)
+
+    # Similar to np.random.choice(weights, p=probs)
+    action = torch.multinomial(softmax(y_pred), 1).item()
+
+    reward = env.pull(action)
+    rewards.append(reward)
+
+    y_test = y_pred.detach().clone()
+    y_test[0][action] = reward
+
+    # L0Los(tep)
+    loss = loss_fn(y_pred, y_test)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+```
+
+    0
+    1000
+    2000
+    3000
+    4000
+
+
+
+```python
+mean_rewards = [rewards.pop(0)]
+for reward in rewards:
+    last = mean_rewards[-1]
+    count = len(mean_rewards)
+    num = last * count + reward
+    den = count + 1
+    mean_reward = num / den
+    mean_rewards.append(mean_reward)
+```
+
+
+```python
+fig, ax = plt.subplots()
+ax.scatter(np.arange(len(mean_rewards)), mean_rewards)
+ax.set_ylabel("Average reward")
+ax.set_xlabel("Epochs");
+```
+
+
+    
+![png](02_markov_decision_process_files/02_markov_decision_process_23_0.png)
+    
+
+
+
+```python
+
+```
