@@ -7,6 +7,40 @@ import sys
     Python 3.12.8
 
 
+
+```python
+!pip show ipywidgets
+!pip install ipywidgets -qqq
+# !jupyter nbextension enable --py widgetsnbextension
+```
+
+    Name: ipywidgets
+    Version: 8.1.5
+    Summary: Jupyter interactive widgets
+    Home-page: http://jupyter.org
+    Author: Jupyter Development Team
+    Author-email: jupyter@googlegroups.com
+    License: BSD 3-Clause License
+    Location: /Users/alextanhongpin/Library/Caches/pypoetry/virtualenvs/python-deep-reinforcement-learning-in-acti-HlKDIbnR-py3.12/lib/python3.12/site-packages
+    Requires: comm, ipython, jupyterlab-widgets, traitlets, widgetsnbextension
+    Required-by: 
+
+
+
+```python
+# From extensions, install `jupyter-widgets-jupyterlab-manager`
+import ipywidgets as widgets
+
+widgets.IntSlider()
+```
+
+
+
+
+    IntSlider(value=0)
+
+
+
 NOTE: Use `Shift+Tab` to show contextual tab.
 
 https://github.com/DeepReinforcementLearning/DeepReinforcementLearningInAction
@@ -233,7 +267,7 @@ print("done")
 
 
     
-![png](00_setup_files/00_setup_19_1.png)
+![png](00_setup_files/00_setup_21_1.png)
     
 
 
