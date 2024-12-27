@@ -36,16 +36,16 @@ for _ in range(10):
     print(ma.add(random.randint(0, 5) + 5))
 ```
 
-    8.0
-    6.5
-    6.333333333333333
-    7.25
-    6.8
     7.0
-    7.142857142857143
-    7.375
-    7.111111111111111
-    7.3
+    6.0
+    5.666666666666667
+    5.5
+    6.0
+    6.166666666666667
+    6.142857142857143
+    6.125
+    6.444444444444445
+    6.8
 
 
 
@@ -287,11 +287,10 @@ model = torch.nn.Sequential(
     torch.nn.Linear(n_arms, hidden),
     torch.nn.ReLU(),
     torch.nn.Linear(hidden, n_arms),
-    torch.nn.ReLU(),
+    torch.nn.Softmax(),
 )
 loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
-softmax = torch.nn.Softmax()
 ```
 
 
@@ -311,7 +310,7 @@ for i in range(epochs):
     y_pred = model(state)
 
     # Similar to np.random.choice(weights, p=probs)
-    action = torch.multinomial(softmax(y_pred), 1).item()
+    action = torch.multinomial(y_pred, 1).item()
 
     reward = env.pull(action)
     rewards.append(reward)
@@ -358,8 +357,3 @@ ax.set_xlabel("Epochs");
 ![png](02_markov_decision_process_files/02_markov_decision_process_23_0.png)
     
 
-
-
-```python
-
-```
