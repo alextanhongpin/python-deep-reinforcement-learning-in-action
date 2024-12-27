@@ -41,7 +41,7 @@ random.sample(replay, 5)
 
 
 
-    [14, 10, 19, 17, 13]
+    [17, 13, 15, 12, 16]
 
 
 
@@ -81,7 +81,7 @@ sample
 
 
 
-    [(18, 19, 20), (13, 14, 15), (10, 11, 12), (12, 13, 14), (11, 12, 13)]
+    [(17, 18, 19), (19, 20, 21), (15, 16, 17), (10, 11, 12), (16, 17, 18)]
 
 
 
@@ -95,11 +95,11 @@ np.array(sample)[:, [0]]
 
 
 
-    array([[18],
-           [13],
+    array([[17],
+           [19],
+           [15],
            [10],
-           [12],
-           [11]])
+           [16]])
 
 
 
@@ -155,9 +155,9 @@ sample
 
 
 
-    tensor([[0.1642, 0.3313, 0.3480, 0.6576],
-            [0.8368, 0.2726, 0.0423, 0.7977],
-            [0.6579, 0.7833, 0.9663, 0.5712]])
+    tensor([[0.8447, 0.5066, 0.2400, 0.5927],
+            [0.7785, 0.8707, 0.1834, 0.7309],
+            [0.0044, 0.6651, 0.6642, 0.0174]])
 
 
 
@@ -169,9 +169,9 @@ torch.flip(sample, dims=(0,))
 
 
 
-    tensor([[0.6579, 0.7833, 0.9663, 0.5712],
-            [0.8368, 0.2726, 0.0423, 0.7977],
-            [0.1642, 0.3313, 0.3480, 0.6576]])
+    tensor([[0.0044, 0.6651, 0.6642, 0.0174],
+            [0.7785, 0.8707, 0.1834, 0.7309],
+            [0.8447, 0.5066, 0.2400, 0.5927]])
 
 
 
@@ -183,9 +183,9 @@ torch.flip(sample, dims=(0, 1))
 
 
 
-    tensor([[0.5712, 0.9663, 0.7833, 0.6579],
-            [0.7977, 0.0423, 0.2726, 0.8368],
-            [0.6576, 0.3480, 0.3313, 0.1642]])
+    tensor([[0.0174, 0.6642, 0.6651, 0.0044],
+            [0.7309, 0.1834, 0.8707, 0.7785],
+            [0.5927, 0.2400, 0.5066, 0.8447]])
 
 
 
@@ -197,9 +197,9 @@ torch.flip(sample, dims=(1,))
 
 
 
-    tensor([[0.6576, 0.3480, 0.3313, 0.1642],
-            [0.7977, 0.0423, 0.2726, 0.8368],
-            [0.5712, 0.9663, 0.7833, 0.6579]])
+    tensor([[0.5927, 0.2400, 0.5066, 0.8447],
+            [0.7309, 0.1834, 0.8707, 0.7785],
+            [0.0174, 0.6642, 0.6651, 0.0044]])
 
 
 
@@ -328,15 +328,284 @@ n, torch.from_numpy(n)
 
 
 
-    (array([[0.48510714, 0.4649105 , 0.60356689],
-            [0.24908803, 0.12008177, 0.15119823]]),
-     tensor([[0.4851, 0.4649, 0.6036],
-             [0.2491, 0.1201, 0.1512]], dtype=torch.float64))
+    (array([[0.86834196, 0.71379203, 0.00695944],
+            [0.03460631, 0.71754087, 0.01358655]]),
+     tensor([[0.8683, 0.7138, 0.0070],
+             [0.0346, 0.7175, 0.0136]], dtype=torch.float64))
+
+
+
+## Torch Operations
+
+
+### Torch Squeeze
+
+`torch.squeeze` removes all dimension of 1 from the tensor.
+
+
+```python
+import torch
+
+t = torch.rand(1, 2, 1, 2)
+t.shape
+```
+
+
+
+
+    torch.Size([1, 2, 1, 2])
 
 
 
 
 ```python
+s = torch.squeeze(t)
+s, s.shape
+```
+
+
+
+
+    (tensor([[0.3566, 0.7225],
+             [0.4224, 0.6005]]),
+     torch.Size([2, 2]))
+
+
+
+
+```python
+# Remove from first dimension
+s = torch.squeeze(t, 0)
+s, s.shape
+```
+
+
+
+
+    (tensor([[[0.3566, 0.7225]],
+     
+             [[0.4224, 0.6005]]]),
+     torch.Size([2, 1, 2]))
+
+
+
+
+```python
+# Remove from second dimension (which is not 1, so it is not removed)
+s = torch.squeeze(t, 1)
+s, s.shape
+```
+
+
+
+
+    (tensor([[[[0.3566, 0.7225]],
+     
+              [[0.4224, 0.6005]]]]),
+     torch.Size([1, 2, 1, 2]))
+
+
+
+
+```python
+# Remove from third dimension (which is not 1, so it is not removed)
+s = torch.squeeze(t, 2)
+s, s.shape
+```
+
+
+
+
+    (tensor([[[0.3566, 0.7225],
+              [0.4224, 0.6005]]]),
+     torch.Size([1, 2, 2]))
+
+
+
+
+```python
+# Remove from fourth dimension
+s = torch.squeeze(t, 3)
+s, s.shape
+```
+
+
+
+
+    (tensor([[[[0.3566, 0.7225]],
+     
+              [[0.4224, 0.6005]]]]),
+     torch.Size([1, 2, 1, 2]))
+
+
+
+
+```python
+# Remove from third dimension
+try:
+    s = torch.squeeze(t, 4)
+except IndexError as e:
+    print(type(e), e)
+```
+
+    <class 'IndexError'> Dimension out of range (expected to be in range of [-4, 3], but got 4)
+
+
+### Torch Unsqueeze
+
+The opposite of `torch.squeeze`, adds an additional dimension at the specified index. 
+Can we use `torch.view` for this?
+
+
+```python
+# (2, 3)
+# Start with an array []
+# There are two more arrays in it, [[], []]
+# And each array has 3 cols, [[1,2,3], [4,5,6]]
+t = torch.rand(2, 3)
+t, t.shape
+```
+
+
+
+
+    (tensor([[0.4083, 0.7886, 0.8799],
+             [0.3980, 0.1163, 0.0064]]),
+     torch.Size([2, 3]))
+
+
+
+
+```python
+# unsqueeze(2,3, dim=0) = (1, 2, 3)
+# Start with an array []
+# Add a 1-dim array inside: [[]]
+# There are two more arrays in it, [[[], []]]
+# And each array has 3 cols, [[[1,2,3], [4,5,6]]]
+s = torch.unsqueeze(t, 0)
+s, s.shape
+```
+
+
+
+
+    (tensor([[[0.4083, 0.7886, 0.8799],
+              [0.3980, 0.1163, 0.0064]]]),
+     torch.Size([1, 2, 3]))
+
+
+
+
+```python
+# unsqueeze(2,3, dim=1) = (2, 1, 3)
+# Start with an array []
+# Add a 2-dim array inside: [[], []]
+# Each has 1 array, [[[]], [[]]]
+# And each array has 3 cols, [[[1,2,3]], [[1,2,3]]]
+s = torch.unsqueeze(t, 1)
+s, s.shape
+```
+
+
+
+
+    (tensor([[[0.4083, 0.7886, 0.8799]],
+     
+             [[0.3980, 0.1163, 0.0064]]]),
+     torch.Size([2, 1, 3]))
+
+
+
+
+```python
+s[0][0]
+```
+
+
+
+
+    tensor([0.4083, 0.7886, 0.8799])
+
+
+
+
+```python
+t.view((2, 1, 3))
+```
+
+
+
+
+    tensor([[[0.4083, 0.7886, 0.8799]],
+    
+            [[0.3980, 0.1163, 0.0064]]])
+
+
+
+
+```python
+# unsqueeze(2,3, dim=2) = (2, 3, 1)
+# Start with an array []
+# Add a 2-dim array inside: [[], []]
+# Each has 3 array, [[[], [], []], [[], [], []]]
+# And each array has 1 col, [[[1], [2], [3]], [[4], [5], [6]]]
+s = torch.unsqueeze(t, 2)  # same as dim=-1
+s, s.shape
+```
+
+
+
+
+    (tensor([[[0.4083],
+              [0.7886],
+              [0.8799]],
+     
+             [[0.3980],
+              [0.1163],
+              [0.0064]]]),
+     torch.Size([2, 3, 1]))
+
+
+
+
+```python
+s[0][0]
+```
+
+
+
+
+    tensor([0.4083])
+
+
+
+
+```python
+t.view((2, 3, 1))
+```
+
+
+
+
+    tensor([[[0.4083],
+             [0.7886],
+             [0.8799]],
+    
+            [[0.3980],
+             [0.1163],
+             [0.0064]]])
+
+
+
+
+### Torch Stack
+
+`torch.stack` operation is basically `torch.unsqueeze` followed by `torch.cat` at the given dimension.
+
+
+```python
+import torch
+
 t = torch.rand((2, 3))
 t, t.shape
 ```
@@ -344,8 +613,8 @@ t, t.shape
 
 
 
-    (tensor([[0.5693, 0.1065, 0.8633],
-             [0.9884, 0.6572, 0.0326]]),
+    (tensor([[0.3298, 0.9315, 0.1492],
+             [0.1927, 0.8380, 0.2639]]),
      torch.Size([2, 3]))
 
 
@@ -379,31 +648,65 @@ t[0], t[1]
 
 
 ```python
+# (2, 3) + (2, 3)
+# unsqueeze(2, 3, dim=0) = (1, 2, 3)
+# cat((1,2,3), (1,2,3), dim=0) = (2, 2, 6)
 a = torch.stack((t, t))
-b = torch.stack((t, t), dim=1)
-c = torch.stack((t, t), dim=2)
-print(a, a.shape)
-print(b, b.shape)
-print(c, c.shape)
+a, a.shape
 ```
 
-    tensor([[[1., 2., 3.],
-             [4., 5., 6.]],
-    
-            [[1., 2., 3.],
-             [4., 5., 6.]]]) torch.Size([2, 2, 3])
-    tensor([[[1., 2., 3.],
-             [1., 2., 3.]],
-    
-            [[4., 5., 6.],
-             [4., 5., 6.]]]) torch.Size([2, 2, 3])
-    tensor([[[1., 1.],
-             [2., 2.],
-             [3., 3.]],
-    
-            [[4., 4.],
-             [5., 5.],
-             [6., 6.]]]) torch.Size([2, 3, 2])
+
+
+
+    (tensor([[[1., 2., 3.],
+              [4., 5., 6.]],
+     
+             [[1., 2., 3.],
+              [4., 5., 6.]]]),
+     torch.Size([2, 2, 3]))
+
+
+
+
+```python
+# unsqueeze(2, 3, dim=1) = (2, 1, 3)
+# cat((2,1,3), (2,1,3), dim=1) = (2, 2, 6)
+b = torch.stack((t, t), dim=1)
+b, b.shape
+```
+
+
+
+
+    (tensor([[[1., 2., 3.],
+              [1., 2., 3.]],
+     
+             [[4., 5., 6.],
+              [4., 5., 6.]]]),
+     torch.Size([2, 2, 3]))
+
+
+
+
+```python
+# unsqueeze(2, 3, dim=2) = (2, 3, 1)
+# cat((2,3,1), (2,3,1), dim=1) = (2, 3, 2)
+c = torch.stack((t, t), dim=2)
+c, c.shape
+```
+
+
+
+
+    (tensor([[[1., 1.],
+              [2., 2.],
+              [3., 3.]],
+     
+             [[4., 4.],
+              [5., 5.],
+              [6., 6.]]]),
+     torch.Size([2, 3, 2]))
+
 
 
 
@@ -464,6 +767,8 @@ print(c, c.shape)
              [6., 6., 6.]]]) torch.Size([2, 3, 3])
 
 
+### Torch Cat
+
 
 ```python
 a = torch.cat((t, t))  # (2,3), (2,3) = (4,3), adds the 0 dim
@@ -498,6 +803,89 @@ print(b, b.shape)
             [4., 5., 6., 4., 5., 6., 4., 5., 6.]]) torch.Size([2, 9])
 
 
+### Torch Gather
+
+The output is actually quite simple. It follows the size of the `index` tensor.
+
+For each dimension, just replace the dim of the `index` tensor:
+
+- dim 0: `input[index][j][k]`
+- dim 1: `input[i][index][k]`
+- dim 2: `input[i][j][index]`
+
+
+```python
+t = torch.Tensor([[1, 2, 3], [4, 5, 6]])
+t, t.shape
+```
+
+
+
+
+    (tensor([[1., 2., 3.],
+             [4., 5., 6.]]),
+     torch.Size([2, 3]))
+
+
+
+
+```python
+# We have three rows to gather
+# Take for example the first index row: [0, 1, 1]
+# Each position is (0, 0), (0, 1), (0, 2)
+# Replace each value at 0 with the index value [0, 1, 1]
+# Each position is now (0, 0), (1, 1), (1, 2)
+# Take the input value
+#
+# The max number of rows for index is unlimited, but the max number of cols must match the input col, which is 3.
+# If tensor shape is (2, 3)
+# Then index shape can be (n, 3) for dim 0
+index = torch.Tensor([[0, 1, 1], [1, 1, 0], [1, 0, 0], [0, 0, 0]]).long()
+print(index.shape)
+torch.gather(t, 0, index)
+```
+
+    torch.Size([4, 3])
+
+
+
+
+
+    tensor([[1., 5., 6.],
+            [4., 5., 3.],
+            [4., 2., 3.],
+            [1., 2., 3.]])
+
+
+
+
+```python
+# We have two rows to gather
+# Take for example the first index row: [1, 2, 0, 1]
+# Each position is (0, 0), (0, 1), (0, 2), (0, 3)
+# Replace each value at 1 with the index value [1, 2, 0, 1]
+# Each position is now (0, 1), (0, 2), (0, 0), (0, 1)
+# Take the input value
+#
+# The max number of row is limited to the number of rows, but the max number of cols is unlimited.
+# If tensor shape is (2, 3)
+# Then index shape can be (2, n) for dim 1
+index = torch.Tensor([[1, 2, 0, 1], [0, 1, 2, 1]]).long()
+print(index.shape)
+torch.gather(t, 1, index)
+```
+
+    torch.Size([2, 4])
+
+
+
+
+
+    tensor([[2., 3., 1., 2.],
+            [4., 5., 6., 5.]])
+
+
+
 
 ```python
 import random
@@ -511,11 +899,6 @@ random.randint(0, 1)  # Generates between lo (inclusive) and hi (inclusive)
     1
 
 
-
-
-```python
-
-```
 
 
 ```python
@@ -730,8 +1113,3 @@ detached
     tensor([2.])
 
 
-
-
-```python
-
-```
