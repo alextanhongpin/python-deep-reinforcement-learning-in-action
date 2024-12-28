@@ -121,30 +121,23 @@ from tqdm.notebook import tqdm, trange
 
 
 ```python
-model = torch.nn.Sequential(
-    # Input is our gridworld state, a 1x64 grid representation.
-    torch.nn.Linear(64, 150),
-    torch.nn.ReLU(),
-    torch.nn.Linear(150, 100),
-    torch.nn.ReLU(),
-    # Output is the expected rewards for each arm: 0: up, 1: down, 2: left, 3: right
-    torch.nn.Linear(100, 4),
-)
-model
+def make_model():
+    model = torch.nn.Sequential(
+        # Input is our gridworld state, a 1x64 grid representation.
+        torch.nn.Linear(64, 150),
+        torch.nn.ReLU(),
+        torch.nn.Linear(150, 100),
+        torch.nn.ReLU(),
+        # Output is the expected rewards for each arm: 0: up, 1: down, 2: left, 3: right
+        torch.nn.Linear(100, 4),
+    )
+    return model
 ```
 
 
-
-
-    Sequential(
-      (0): Linear(in_features=64, out_features=150, bias=True)
-      (1): ReLU()
-      (2): Linear(in_features=150, out_features=100, bias=True)
-      (3): ReLU()
-      (4): Linear(in_features=100, out_features=4, bias=True)
-    )
-
-
+```python
+model = make_model()
+```
 
 
 ```python
@@ -205,7 +198,7 @@ plt.plot(np.arange(len(losses)), losses);
 
 
     
-![png](03_deep_q_network.v2_files/03_deep_q_network.v2_13_1.png)
+![png](03_deep_q_network.v2_files/03_deep_q_network.v2_14_1.png)
     
 
 
@@ -273,7 +266,7 @@ plt.plot(np.arange(len(losses)), losses);
 
 
     
-![png](03_deep_q_network.v2_files/03_deep_q_network.v2_16_1.png)
+![png](03_deep_q_network.v2_files/03_deep_q_network.v2_17_1.png)
     
 
 
@@ -316,14 +309,14 @@ def dqn_experience_replay(model, optimizer, epochs=1000, gamma=0.9, epsilon=1.0)
 
             if len(replay) > batch_size:
                 # Experience replay.
-                samples = random.sample(replay, batch_size)
+                batch = random.sample(replay, batch_size)
                 (
                     state1_batch,
                     action_batch,
                     reward_batch,
                     state2_batch,
                     terminated_batch,
-                ) = list(zip(*samples))
+                ) = list(zip(*batch))
                 state1_batch = torch.cat(state1_batch)
                 action_batch = torch.Tensor(action_batch)
                 reward_batch = torch.Tensor(reward_batch)
@@ -394,15 +387,7 @@ torch.max(torch.Tensor([[1, 2, 3], [3, 5, 6]]))
 
 
 ```python
-model = torch.nn.Sequential(
-    # Input is our gridworld state, a 1x64 grid representation.
-    torch.nn.Linear(64, 150),
-    torch.nn.ReLU(),
-    torch.nn.Linear(150, 100),
-    torch.nn.ReLU(),
-    # Output is the expected rewards for each arm: 0: up, 1: down, 2: left, 3: right
-    torch.nn.Linear(100, 4),
-)
+model = make_model()
 loss_fn = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 ```
@@ -420,13 +405,13 @@ plt.plot(np.arange(len(losses)), losses)
 
 
 
-    [<matplotlib.lines.Line2D at 0x15244b020>]
+    [<matplotlib.lines.Line2D at 0x155e6a390>]
 
 
 
 
     
-![png](03_deep_q_network.v2_files/03_deep_q_network.v2_23_2.png)
+![png](03_deep_q_network.v2_files/03_deep_q_network.v2_24_2.png)
     
 
 
@@ -471,19 +456,206 @@ win, loss, limbo
 
     
     [['.' '.' '.' '.']
-     ['.' '+' '.' '.']
-     ['.' '-' '.' '.']
-     ['.' 'P' 'W' '.']]
+     ['.' '.' '-' '+']
+     ['W' '.' '.' '.']
+     ['.' 'P' '.' '.']]
     
-    [['W' '.' '.' '.']
+    [['-' 'W' '.' '.']
      ['+' '.' '.' '.']
-     ['.' '.' '-' '.']
-     ['P' '.' '.' '.']]
+     ['.' '.' '.' 'P']
+     ['.' '.' '.' '.']]
+    
+    [['.' '.' 'P' '.']
+     ['.' '.' '.' '.']
+     ['.' '.' 'W' '.']
+     ['+' '.' '-' '.']]
+    
+    [['.' 'P' '.' '.']
+     ['.' '-' '.' '.']
+     ['.' 'W' '.' '.']
+     ['.' '+' '.' '.']]
+    
+    [['.' '.' '.' '.']
+     ['.' '+' '-' 'P']
+     ['W' '.' '.' '.']
+     ['.' '.' '.' '.']]
+    
+    [['.' '.' 'W' '.']
+     ['.' '+' '.' '.']
+     ['.' '.' '-' 'P']
+     ['.' '.' '.' '.']]
+    
+    [['-' '.' '.' '.']
+     ['+' '.' '.' '.']
+     ['.' '.' 'W' 'P']
+     ['.' '.' '.' '.']]
 
 
 
 
 
-    (998, 0, 2)
+    (993, 0, 7)
+
+
+
+## Target Network
+
+
+```python
+import copy
+
+model = make_model()
+# https://discuss.pytorch.org/t/are-there-any-recommended-methods-to-clone-a-model/483/4
+target = copy.deepcopy(model)
+target.load_state_dict(model.state_dict())
+
+loss_fn = torch.nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+```
+
+
+```python
+def dqn_target_network(
+    model, target, optimizer, sync_freq=500, epochs=5000, epsilon=1.0, gamma=0.9
+):
+    losses = []
+    mem_size = 1000
+    batch_size = 200
+    replay = deque(maxlen=mem_size)
+    max_moves = 50
+    noise = lambda: torch.rand(1, 64) / 64
+
+    freq = 0
+
+    for _ in trange(epochs):
+        env = GridWorld(4)
+        env.reset(seed=None)  # Random state
+
+        observation = env.observation
+        for _ in range(max_moves):
+            state = torch.Tensor(observation).view(-1, 64) + noise()
+            q_val = model(state)
+            if np.random.random() < epsilon:
+                action = torch.randint(4, (1,)).item()
+            else:
+                action = torch.argmax(q_val, dim=1).item()
+
+            observation, reward, terminated, _truncated, _info = env.step(action)
+            replay.append(
+                (
+                    state,
+                    action,
+                    reward,
+                    torch.Tensor(observation).view(-1, 64),
+                    terminated,
+                )
+            )
+            if len(replay) > batch_size:
+                batch = random.sample(replay, batch_size)
+                (
+                    state1_batch,
+                    action_batch,
+                    reward_batch,
+                    state2_batch,
+                    terminated_batch,
+                ) = list(zip(*batch))
+                state1_batch = torch.cat(state1_batch)
+                action_batch = torch.Tensor(action_batch)
+                reward_batch = torch.Tensor(reward_batch)
+                state2_batch = torch.cat(state2_batch)
+                terminated_batch = torch.Tensor(terminated_batch)
+
+                q_val = model(state1_batch)
+                with torch.no_grad():
+                    q_val_next = target(state2_batch)
+                y_pred = (
+                    reward_batch
+                    + gamma * (1 - terminated_batch) * torch.max(q_val_next, dim=1)[0]
+                )
+                y_true = q_val.gather(
+                    dim=1, index=action_batch.unsqueeze(dim=1).long()
+                ).squeeze()
+                loss = loss_fn(y_pred, y_true)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                losses.append(loss.item())
+
+                if freq % sync_freq == 0:
+                    target.load_state_dict(model.state_dict())
+                if terminated:
+                    break
+            freq += 1
+        if epsilon > 0.1:
+            epsilon -= 1 / epochs
+    return losses
+```
+
+
+```python
+losses = dqn_target_network(model, target, optimizer, epochs=5000)
+plt.plot(np.arange(len(losses)), losses);
+```
+
+
+      0%|          | 0/5000 [00:00<?, ?it/s]
+
+
+
+    
+![png](03_deep_q_network.v2_files/03_deep_q_network.v2_30_1.png)
+    
+
+
+
+```python
+def test_dqn_target_network(model, epoch=1000, max_moves=50):
+    wins = 0
+    loss = 0
+    limbo = 0
+    for _ in trange(epoch):
+        env = GridWorld(4)
+        env.reset(seed=None)  # Random state
+
+        observation = env.observation
+        for _ in range(max_moves):
+            state = torch.Tensor(observation).view(-1, 64)
+            q_val = model(state)
+            action = torch.argmax(q_val, dim=1).item()
+            observation, reward, terminated, _truncated, _info = env.step(action)
+            if terminated:
+                break
+        if reward == 10:
+            wins += 1
+        if reward == -10:
+            loss += 1
+        if reward == -1:
+            print()
+            print(np.array(env.render()))
+            limbo += 1
+    return wins, loss, limbo
+```
+
+
+```python
+wins, loss, limbo = test_dqn_target_network(model)
+wins, loss, limbo
+```
+
+
+      0%|          | 0/1000 [00:00<?, ?it/s]
+
+
+    
+    [['W' 'P' '.' '.']
+     ['.' '.' '.' '.']
+     ['.' '.' '-' '+']
+     ['.' '.' '.' '.']]
+
+
+
+
+
+    (999, 0, 1)
 
 
