@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn.functional as F
+
+plt.rcParams["figure.figsize"] = (10, 8)
 ```
 
 Defining the reward function
@@ -36,16 +38,16 @@ for _ in range(10):
     print(ma.add(random.randint(0, 5) + 5))
 ```
 
-    7.0
     6.0
-    5.666666666666667
-    5.5
-    6.0
-    6.166666666666667
-    6.142857142857143
-    6.125
-    6.444444444444445
-    6.8
+    7.5
+    7.333333333333333
+    8.0
+    7.4
+    7.333333333333333
+    7.714285714285714
+    7.5
+    7.666666666666667
+    7.9
 
 
 
@@ -327,6 +329,12 @@ for i in range(epochs):
 
     0
     1000
+
+
+    /Users/alextanhongpin/Library/Caches/pypoetry/virtualenvs/python-deep-reinforcement-learning-in-acti-HlKDIbnR-py3.12/lib/python3.12/site-packages/torch/nn/modules/module.py:1736: UserWarning: Implicit dimension choice for softmax has been deprecated. Change the call to include dim=X as an argument.
+      return self._call_impl(*args, **kwargs)
+
+
     2000
     3000
     4000

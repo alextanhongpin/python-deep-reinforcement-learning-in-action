@@ -4,43 +4,62 @@
 
 
 ```python
-import gym
-from gym import envs
+import gymnasium as gym
 
-envs.registry.all()
+print("\n".join(gym.envs.registry.keys()))
 ```
 
-
-
-
-    ValuesView(├──CartPole: [ v0, v1 ]
-    ├──MountainCar: [ v0 ]
-    ├──MountainCarContinuous: [ v0 ]
-    ├──Pendulum: [ v1 ]
-    ├──Acrobot: [ v1 ]
-    ├──LunarLander: [ v2 ]
-    ├──LunarLanderContinuous: [ v2 ]
-    ├──BipedalWalker: [ v3 ]
-    ├──BipedalWalkerHardcore: [ v3 ]
-    ├──CarRacing: [ v1 ]
-    ├──Blackjack: [ v1 ]
-    ├──FrozenLake: [ v1 ]
-    ├──FrozenLake8x8: [ v1 ]
-    ├──CliffWalking: [ v0 ]
-    ├──Taxi: [ v3 ]
-    ├──Reacher: [ v2 ]
-    ├──Pusher: [ v2 ]
-    ├──InvertedPendulum: [ v2 ]
-    ├──InvertedDoublePendulum: [ v2 ]
-    ├──HalfCheetah: [ v2, v3 ]
-    ├──Hopper: [ v2, v3 ]
-    ├──Swimmer: [ v2, v3 ]
-    ├──Walker2d: [ v2, v3 ]
-    ├──Ant: [ v2, v3 ]
-    ├──Humanoid: [ v2, v3 ]
-    └──HumanoidStandup: [ v2 ]
-    )
-
+    CartPole-v0
+    CartPole-v1
+    MountainCar-v0
+    MountainCarContinuous-v0
+    Pendulum-v1
+    Acrobot-v1
+    phys2d/CartPole-v0
+    phys2d/CartPole-v1
+    phys2d/Pendulum-v0
+    LunarLander-v2
+    LunarLanderContinuous-v2
+    BipedalWalker-v3
+    BipedalWalkerHardcore-v3
+    CarRacing-v2
+    Blackjack-v1
+    FrozenLake-v1
+    FrozenLake8x8-v1
+    CliffWalking-v0
+    Taxi-v3
+    tabular/Blackjack-v0
+    tabular/CliffWalking-v0
+    Reacher-v2
+    Reacher-v4
+    Pusher-v2
+    Pusher-v4
+    InvertedPendulum-v2
+    InvertedPendulum-v4
+    InvertedDoublePendulum-v2
+    InvertedDoublePendulum-v4
+    HalfCheetah-v2
+    HalfCheetah-v3
+    HalfCheetah-v4
+    Hopper-v2
+    Hopper-v3
+    Hopper-v4
+    Swimmer-v2
+    Swimmer-v3
+    Swimmer-v4
+    Walker2d-v2
+    Walker2d-v3
+    Walker2d-v4
+    Ant-v2
+    Ant-v3
+    Ant-v4
+    Humanoid-v2
+    Humanoid-v3
+    Humanoid-v4
+    HumanoidStandup-v2
+    HumanoidStandup-v4
+    GymV21Environment-v0
+    GymV26Environment-v0
 
 
 
@@ -50,15 +69,12 @@ state = env.reset()
 state, type(state)
 ```
 
-    /Users/alextanhongpin/Library/Caches/pypoetry/virtualenvs/python-deep-reinforcement-learning-in-acti-HlKDIbnR-py3.12/lib/python3.12/site-packages/pygame/pkgdata.py:25: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
-      from pkg_resources import resource_stream, resource_exists
 
 
 
-
-
-    (array([ 0.01369742,  0.00104424, -0.03528991, -0.0063105 ], dtype=float32),
-     numpy.ndarray)
+    ((array([-0.02608106,  0.03936328, -0.02641061,  0.03470548], dtype=float32),
+      {}),
+     tuple)
 
 
 
@@ -71,21 +87,22 @@ action, env.action_space
 
 
 
-    (1, Discrete(2))
+    (0, Discrete(2))
 
 
 
 
 ```python
-state, reward, done, info = env.step(action)
-state, reward, done, info
+state, reward, done, trunc, info = env.step(action)
+state, reward, done, trunc, info
 ```
 
 
 
 
-    (array([ 0.0137183 ,  0.19665407, -0.03541612, -0.30991563], dtype=float32),
+    (array([-0.02529379, -0.15537018, -0.0257165 ,  0.31893998], dtype=float32),
      1.0,
+     False,
      False,
      {})
 
@@ -95,9 +112,11 @@ state, reward, done, info
 
 
 ```python
+import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from gymnasium.wrappers import RecordVideo  # pip install moviepy
 from tqdm.notebook import trange
 
 plt.rcParams["figure.figsize"] = (14, 6)
@@ -171,16 +190,16 @@ def reinforce(model, optimzer, max_episodes=1000, max_trajectory=500, gamma=0.99
     env = gym.make("CartPole-v1")
     scores = []
     for episode in trange(max_episodes):
-        observation = env.reset()
+        observation, _info = env.reset()
         transitions = []
 
         for t in range(max_trajectory):
             state = torch.from_numpy(observation)
             action_probs = model(state)
             action = torch.multinomial(action_probs, 1)
-            observation, reward, done, _info = env.step(action.item())
+            observation, reward, done, trunc, _info = env.step(action.item())
             transitions.append((state, action, reward + t))
-            if done:
+            if done or trunc:
                 break
         scores.append(len(transitions))
 
@@ -232,11 +251,19 @@ ax.set_ylabel("Episode duration")
 
 
 ```python
-def test_reinforce(model, max_episodes=1000, max_trajectory=1000):
-    env = gym.make("CartPole-v1")
+def test_reinforce(model, max_episodes=1000, max_trajectory=500):
+    env = gym.make("CartPole-v1", render_mode="rgb_array")
+    if max_episodes == 1:
+        env = RecordVideo(
+            env,
+            video_folder="./videos/",
+            episode_trigger=lambda t: t % 10 == 0,
+            disable_logger=True,
+        )
+
     scores = []
     for episode in trange(max_episodes):
-        observation = env.reset()
+        observation, _info = env.reset()
         transitions = []
 
         for t in range(max_trajectory):
@@ -244,9 +271,9 @@ def test_reinforce(model, max_episodes=1000, max_trajectory=1000):
             with torch.no_grad():
                 action_probs = model(state)
             action = torch.multinomial(action_probs, 1)
-            observation, reward, done, _info = env.step(action.item())
+            observation, reward, done, trunc, _info = env.step(action.item())
             transitions.append((state, action, t + 1))
-            if done:
+            if done or trunc:
                 break
         scores.append(len(transitions))
     return scores
@@ -254,7 +281,7 @@ def test_reinforce(model, max_episodes=1000, max_trajectory=1000):
 
 
 ```python
-scores = test_reinforce(model)
+scores = test_reinforce(model, max_episodes=1000)
 
 fig, ax = plt.subplots()
 ax.plot(np.arange(len(scores)), scores)
@@ -280,7 +307,7 @@ np.mean(scores), np.min(scores), np.max(scores)
 
 
 
-    (258.547, 19, 500)
+    (285.96, 22, 500)
 
 
 

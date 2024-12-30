@@ -117,7 +117,25 @@ import numpy as np
 import torch
 from gridworld.gridworld import GridWorld
 from tqdm.notebook import tqdm, trange
+
+plt.rcParams["figure.figsize"] = (10, 8)
+
+# mps is slow ...
+# device = (
+#     "cuda"
+#     if torch.cuda.is_available()
+#     else "mps" if torch.backends.mps.is_available() else "cpu"
+# )
+device = "cpu"
+device
 ```
+
+
+
+
+    'cpu'
+
+
 
 
 ```python
@@ -136,19 +154,27 @@ def make_model():
 
 
 ```python
-model = make_model()
+model = make_model().to(device)
+next(model.parameters()).device
 ```
 
 
+
+
+    device(type='cpu')
+
+
+
+
 ```python
-loss_fn = torch.nn.MSELoss()
+criterion = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 ```
 
 
 ```python
 def dqn(model, optimizer, epoch=1000, epsilon=1.0, gamma=0.9, seed=None):
-    noise = lambda: torch.rand(1, 64) / 64
+    noise = lambda: (torch.rand(1, 64) / 64).to(device)
     losses = []
     for i in trange(epoch):
         env = GridWorld(size=4)
@@ -157,7 +183,7 @@ def dqn(model, optimizer, epoch=1000, epsilon=1.0, gamma=0.9, seed=None):
         # Initial state, with noise.
         observation = env.observation
         while True:
-            state = torch.Tensor(observation).view(-1, 64) + noise()
+            state = torch.Tensor(observation).to(device).view(-1, 64) + noise()
             q_val = model(state)
             if np.random.random() < epsilon:  # Exploration
                 action = torch.randint(4, (1,)).item()
@@ -165,15 +191,15 @@ def dqn(model, optimizer, epoch=1000, epsilon=1.0, gamma=0.9, seed=None):
                 action = torch.argmax(q_val, dim=1).item()
             observation, reward, terminated, _truncated, _info = env.step(action)
             if not terminated:
-                state = torch.Tensor(observation).view(-1, 64) + noise()
+                state = torch.Tensor(observation).to(device).view(-1, 64) + noise()
                 with torch.no_grad():
                     next_q_val = model(state)
                 max_q = torch.max(next_q_val)
                 reward = reward + gamma * max_q
 
-            y_pred = torch.Tensor([reward])
+            y_pred = torch.Tensor([reward]).to(device)
             y_true = q_val[:, action]
-            loss = loss_fn(y_pred, y_true)
+            loss = criterion(y_pred, y_true)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -210,11 +236,11 @@ def test_dqn(model, epoch=32):
 
     # Initial state, with noise.
     observation = env.observation
-    for i in trange(epoch):
+    for i in range(epoch):
         print("Step: {}".format(i))
         print("\n".join(list(map(lambda row: "".join(row), env.render()))))
         print()
-        state = torch.Tensor(observation).view(-1, 64)
+        state = torch.Tensor(observation).to(device).view(-1, 64)
         with torch.no_grad():
             q_val = model(state)
         action = torch.argmax(q_val, dim=1).item()
@@ -228,10 +254,6 @@ def test_dqn(model, epoch=32):
 ```python
 test_dqn(model)
 ```
-
-
-      0%|          | 0/32 [00:00<?, ?it/s]
-
 
     Step: 0
     ....
@@ -282,7 +304,7 @@ def dqn_experience_replay(model, optimizer, epochs=1000, gamma=0.9, epsilon=1.0)
     batch_size = 200
     max_moves = 50
     losses = []
-    noise = lambda: torch.rand(1, 64) / 64
+    noise = lambda: (torch.rand(1, 64) / 64).to(device)
 
     for _ in trange(epochs):
         env = GridWorld(4)
@@ -290,7 +312,7 @@ def dqn_experience_replay(model, optimizer, epochs=1000, gamma=0.9, epsilon=1.0)
 
         observation = env.observation
         for _ in range(max_moves):
-            state = torch.Tensor(observation).view(-1, 64) + noise()
+            state = torch.Tensor(observation).to(device).view(-1, 64) + noise()
             q_val = model(state)
             if np.random.random() < epsilon:
                 action = torch.randint(4, (1,)).item()
@@ -302,7 +324,7 @@ def dqn_experience_replay(model, optimizer, epochs=1000, gamma=0.9, epsilon=1.0)
                     state,
                     action,
                     reward,
-                    torch.Tensor(observation).view(-1, 64),
+                    torch.Tensor(observation).to(device).view(-1, 64),
                     terminated,
                 )
             )
@@ -318,10 +340,10 @@ def dqn_experience_replay(model, optimizer, epochs=1000, gamma=0.9, epsilon=1.0)
                     terminated_batch,
                 ) = list(zip(*batch))
                 state1_batch = torch.cat(state1_batch)
-                action_batch = torch.Tensor(action_batch)
-                reward_batch = torch.Tensor(reward_batch)
+                action_batch = torch.Tensor(action_batch).to(device)
+                reward_batch = torch.Tensor(reward_batch).to(device)
                 state2_batch = torch.cat(state2_batch)
-                terminated_batch = torch.Tensor(terminated_batch)
+                terminated_batch = torch.Tensor(terminated_batch).to(device)
                 q_val = model(state1_batch)
                 with torch.no_grad():
                     q_val_next = model(state2_batch)
@@ -332,7 +354,7 @@ def dqn_experience_replay(model, optimizer, epochs=1000, gamma=0.9, epsilon=1.0)
                 y_true = q_val.gather(
                     dim=1, index=action_batch.unsqueeze(dim=1).long()
                 ).squeeze()
-                loss = loss_fn(y_pred, y_true)
+                loss = criterion(y_pred, y_true)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -387,8 +409,8 @@ torch.max(torch.Tensor([[1, 2, 3], [3, 5, 6]]))
 
 
 ```python
-model = make_model()
-loss_fn = torch.nn.MSELoss()
+model = make_model().to(device)
+criterion = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 ```
 
@@ -405,7 +427,7 @@ plt.plot(np.arange(len(losses)), losses)
 
 
 
-    [<matplotlib.lines.Line2D at 0x155e6a390>]
+    [<matplotlib.lines.Line2D at 0x168ef4c50>]
 
 
 
@@ -427,7 +449,7 @@ def test_dqn_experience_replay(model, epoch=1000, max_moves=50):
 
         observation = env.observation
         for _ in range(max_moves):
-            state = torch.Tensor(observation).view(-1, 64)
+            state = torch.Tensor(observation).to(device).view(-1, 64)
             q_val = model(state)
             action = torch.argmax(q_val, dim=1).item()
             observation, reward, terminated, _truncated, _info = env.step(action)
@@ -455,46 +477,56 @@ win, loss, limbo
 
 
     
-    [['.' '.' '.' '.']
-     ['.' '.' '-' '+']
-     ['W' '.' '.' '.']
-     ['.' 'P' '.' '.']]
+    [['-' '.' '.' '.']
+     ['.' '.' '.' '.']
+     ['.' '.' '.' '.']
+     ['P' '.' '+' '.']]
     
-    [['-' 'W' '.' '.']
-     ['+' '.' '.' '.']
-     ['.' '.' '.' 'P']
+    [['W' '+' '.' '.']
+     ['.' '-' '.' '.']
+     ['.' '.' 'P' '.']
      ['.' '.' '.' '.']]
     
-    [['.' '.' 'P' '.']
+    [['.' 'P' '.' '.']
+     ['.' '-' '.' '+']
+     ['W' '.' '.' '.']
+     ['.' '.' '.' '.']]
+    
+    [['.' 'P' 'W' '.']
+     ['+' '-' '.' '.']
      ['.' '.' '.' '.']
-     ['.' '.' 'W' '.']
-     ['+' '.' '-' '.']]
+     ['.' '.' '.' '.']]
     
     [['.' 'P' '.' '.']
+     ['.' '-' '.' '+']
+     ['W' '.' '.' '.']
+     ['.' '.' '.' '.']]
+    
+    [['W' '+' '.' '.']
      ['.' '-' '.' '.']
-     ['.' 'W' '.' '.']
-     ['.' '+' '.' '.']]
+     ['.' '.' 'P' '.']
+     ['.' '.' '.' '.']]
     
     [['.' '.' '.' '.']
      ['.' '+' '-' 'P']
      ['W' '.' '.' '.']
      ['.' '.' '.' '.']]
     
-    [['.' '.' 'W' '.']
-     ['.' '+' '.' '.']
-     ['.' '.' '-' 'P']
-     ['.' '.' '.' '.']]
+    [['.' '+' '.' '.']
+     ['.' '.' '.' '.']
+     ['.' '-' 'W' '.']
+     ['.' 'P' '.' '.']]
     
-    [['-' '.' '.' '.']
-     ['+' '.' '.' '.']
-     ['.' '.' 'W' 'P']
-     ['.' '.' '.' '.']]
+    [['W' '+' '.' '.']
+     ['.' '.' '.' '.']
+     ['.' '-' '.' '.']
+     ['.' 'P' '.' '.']]
 
 
 
 
 
-    (993, 0, 7)
+    (990, 1, 9)
 
 
 
@@ -504,12 +536,12 @@ win, loss, limbo
 ```python
 import copy
 
-model = make_model()
+model = make_model().to(device)
 # https://discuss.pytorch.org/t/are-there-any-recommended-methods-to-clone-a-model/483/4
 target = copy.deepcopy(model)
 target.load_state_dict(model.state_dict())
 
-loss_fn = torch.nn.MSELoss()
+criterion = torch.nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 ```
 
@@ -523,7 +555,7 @@ def dqn_target_network(
     batch_size = 200
     replay = deque(maxlen=mem_size)
     max_moves = 50
-    noise = lambda: torch.rand(1, 64) / 64
+    noise = lambda: (torch.rand(1, 64) / 64).to(device)
 
     freq = 0
 
@@ -533,7 +565,7 @@ def dqn_target_network(
 
         observation = env.observation
         for _ in range(max_moves):
-            state = torch.Tensor(observation).view(-1, 64) + noise()
+            state = torch.Tensor(observation).to(device).view(-1, 64) + noise()
             q_val = model(state)
             if np.random.random() < epsilon:
                 action = torch.randint(4, (1,)).item()
@@ -546,7 +578,7 @@ def dqn_target_network(
                     state,
                     action,
                     reward,
-                    torch.Tensor(observation).view(-1, 64),
+                    torch.Tensor(observation).to(device).view(-1, 64),
                     terminated,
                 )
             )
@@ -560,10 +592,10 @@ def dqn_target_network(
                     terminated_batch,
                 ) = list(zip(*batch))
                 state1_batch = torch.cat(state1_batch)
-                action_batch = torch.Tensor(action_batch)
-                reward_batch = torch.Tensor(reward_batch)
+                action_batch = torch.Tensor(action_batch).to(device)
+                reward_batch = torch.Tensor(reward_batch).to(device)
                 state2_batch = torch.cat(state2_batch)
-                terminated_batch = torch.Tensor(terminated_batch)
+                terminated_batch = torch.Tensor(terminated_batch).to(device)
 
                 q_val = model(state1_batch)
                 with torch.no_grad():
@@ -575,7 +607,7 @@ def dqn_target_network(
                 y_true = q_val.gather(
                     dim=1, index=action_batch.unsqueeze(dim=1).long()
                 ).squeeze()
-                loss = loss_fn(y_pred, y_true)
+                loss = criterion(y_pred, y_true)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -619,7 +651,7 @@ def test_dqn_target_network(model, epoch=1000, max_moves=50):
 
         observation = env.observation
         for _ in range(max_moves):
-            state = torch.Tensor(observation).view(-1, 64)
+            state = torch.Tensor(observation).to(device).view(-1, 64)
             q_val = model(state)
             action = torch.argmax(q_val, dim=1).item()
             observation, reward, terminated, _truncated, _info = env.step(action)
@@ -647,15 +679,45 @@ wins, loss, limbo
 
 
     
-    [['W' 'P' '.' '.']
+    [['W' '.' '.' '+']
+     ['.' '.' '.' '-']
      ['.' '.' '.' '.']
-     ['.' '.' '-' '+']
-     ['.' '.' '.' '.']]
+     ['.' '.' 'P' '.']]
+    
+    [['.' '.' '.' '+']
+     ['.' '.' '.' '-']
+     ['.' '.' 'W' '.']
+     ['.' '.' 'P' '.']]
+    
+    [['W' '.' '.' '.']
+     ['P' '-' '.' '.']
+     ['.' '.' '.' '.']
+     ['.' '.' '+' '.']]
+    
+    [['-' '.' '.' '.']
+     ['.' '.' 'P' '.']
+     ['.' '.' 'W' '.']
+     ['+' '.' '.' '.']]
+    
+    [['W' '.' '.' '+']
+     ['.' '.' '.' '-']
+     ['.' '.' '.' '.']
+     ['.' '.' 'P' '.']]
+    
+    [['.' '.' '.' '+']
+     ['.' '.' '.' '-']
+     ['.' '.' '.' '.']
+     ['W' '.' 'P' '.']]
+    
+    [['.' '.' '.' '+']
+     ['.' '.' '.' '-']
+     ['.' '.' 'W' '.']
+     ['.' '.' 'P' '.']]
 
 
 
 
 
-    (999, 0, 1)
+    (993, 0, 7)
 
 

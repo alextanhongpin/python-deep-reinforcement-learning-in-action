@@ -1,5 +1,5 @@
 
-import gym
+import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -33,7 +33,7 @@ def run_episode(model, optimizer, clc=0.1, gamma=0.95, max_episodes=500):
     log_probs = []
     rewards = []
     env = gym.make("CartPole-v1")
-    observation = env.reset()
+    observation, _info = env.reset()
     for _ in range(max_episodes):
         state = torch.Tensor(observation)
         policy, value = model(state)
@@ -45,8 +45,10 @@ def run_episode(model, optimizer, clc=0.1, gamma=0.95, max_episodes=500):
         log_prob = policy.view(-1)[action]
         log_probs.append(log_prob)
 
-        observation, _reward, done, info = env.step(action.detach().long().item())
-        reward = -10 if done else 1
+        observation, _reward, done, trunc, info = env.step(
+            action.detach().long().item()
+        )
+        reward = -10 if (done or trunc) else 1
         rewards.append(reward)
         if done:
             break

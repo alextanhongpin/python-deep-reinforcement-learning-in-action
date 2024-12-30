@@ -17,7 +17,7 @@ def save2file(line, cell):
 ```python
 %%save2file actor_critic.py
 
-import gym
+import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -51,7 +51,7 @@ def run_episode(model, optimizer, clc=0.1, gamma=0.95, max_episodes=500):
     log_probs = []
     rewards = []
     env = gym.make("CartPole-v1")
-    observation = env.reset()
+    observation, _info = env.reset()
     for _ in range(max_episodes):
         state = torch.Tensor(observation)
         policy, value = model(state)
@@ -63,8 +63,10 @@ def run_episode(model, optimizer, clc=0.1, gamma=0.95, max_episodes=500):
         log_prob = policy.view(-1)[action]
         log_probs.append(log_prob)
 
-        observation, _reward, done, info = env.step(action.detach().long().item())
-        reward = -10 if done else 1
+        observation, _reward, done, trunc, info = env.step(
+            action.detach().long().item()
+        )
+        reward = -10 if (done or trunc) else 1
         rewards.append(reward)
         if done:
             break
@@ -97,7 +99,7 @@ def worker(worker_id, model, counter, params):
 
 
 ```python
-import gym
+import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -127,17 +129,7 @@ if __name__ == "__main__":
     print(counter.value, processes[0].exitcode)
 ```
 
-    /Users/alextanhongpin/Library/Caches/pypoetry/virtualenvs/python-deep-reinforcement-learning-in-acti-HlKDIbnR-py3.12/lib/python3.12/site-packages/pygame/pkgdata.py:25: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
-      from pkg_resources import resource_stream, resource_exists
-    /Users/alextanhongpin/Library/Caches/pypoetry/virtualenvs/python-deep-reinforcement-learning-in-acti-HlKDIbnR-py3.12/lib/python3.12/site-packages/pygame/pkgdata.py:25: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
-      from pkg_resources import resource_stream, resource_exists
-    /Users/alextanhongpin/Library/Caches/pypoetry/virtualenvs/python-deep-reinforcement-learning-in-acti-HlKDIbnR-py3.12/lib/python3.12/site-packages/pygame/pkgdata.py:25: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
-      from pkg_resources import resource_stream, resource_exists
-    /Users/alextanhongpin/Library/Caches/pypoetry/virtualenvs/python-deep-reinforcement-learning-in-acti-HlKDIbnR-py3.12/lib/python3.12/site-packages/pygame/pkgdata.py:25: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
-      from pkg_resources import resource_stream, resource_exists
-
-
-    3998 0
+    3999 0
 
 
 
@@ -146,7 +138,7 @@ def evaluate(model, max_episodes=1000, max_trajectory=1000):
     env = gym.make("CartPole-v1")
     scores = []
     for episode in trange(max_episodes):
-        observation = env.reset()
+        observation, _info = env.reset()
         transitions = []
 
         for t in range(max_trajectory):
@@ -156,9 +148,9 @@ def evaluate(model, max_episodes=1000, max_trajectory=1000):
             logits = policy.view(-1)
             action_dist = torch.distributions.Categorical(logits=logits)
             action = action_dist.sample()
-            observation, reward, done, _info = env.step(action.item())
+            observation, reward, done, trunc, _info = env.step(action.item())
             transitions.append((state, action, t + 1))
-            if done:
+            if done or trunc:
                 break
         scores.append(len(transitions))
     return scores
@@ -193,8 +185,3 @@ plt.hist(scores);
 ![png](05_actor_critic.v2_files/05_actor_critic.v2_6_0.png)
     
 
-
-
-```python
-
-```

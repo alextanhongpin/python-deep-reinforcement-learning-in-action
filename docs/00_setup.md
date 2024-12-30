@@ -41,6 +41,17 @@ widgets.IntSlider()
 
 
 
+Set figure size
+```python
+matplotlib.rcParams['figure.figsize'] = (14, 6)
+```
+
+## Check Device
+
+```python
+device = 'cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu'
+```
+
 NOTE: Use `Shift+Tab` to show contextual tab.
 
 https://github.com/DeepReinforcementLearning/DeepReinforcementLearningInAction
@@ -267,7 +278,7 @@ print("done")
 
 
     
-![png](00_setup_files/00_setup_21_1.png)
+![png](00_setup_files/00_setup_23_1.png)
     
 
 
