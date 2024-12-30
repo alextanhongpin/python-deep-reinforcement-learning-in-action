@@ -24,6 +24,7 @@ scikit-image = "^0.22.0"
 gridworld = {git = "https://github.com/alextanhongpin/python_gridworld.git"}
 ipywidgets = "^8.1.5"
 moviepy = "^2.1.1"
+tensorboard = "^2.18.0"
 
 
 [build-system]
