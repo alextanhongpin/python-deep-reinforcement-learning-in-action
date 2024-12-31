@@ -98,7 +98,10 @@ def next_generation(pop, size=100, length=26, mut_rate=0.01):
 
 
 ```python
+from torch.utils.tensorboard import SummaryWriter
 from tqdm.autonotebook import tqdm
+
+writer = SummaryWriter("logs")
 
 num_generations = 150
 population_size = 900
@@ -113,19 +116,26 @@ for gen in tqdm(range(num_generations)):
     new_pop = next_generation(
         pop, size=population_size, length=str_len, mut_rate=mutation_rate
     )
+    pop.sort(key=lambda x: x.fitness, reverse=True)
+    writer.add_text("evolutionary", pop[0].string, gen)
+    writer.add_scalar("evolutionary/fitness", avg_fit, gen)
+    writer.flush()
     pop = new_pop
+
+writer.close()
 
 pop.sort(key=lambda x: x.fitness, reverse=True)
 pop[0].string
 ```
 
-    100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 150/150 [00:13<00:00, 10.88it/s]
+
+      0%|          | 0/150 [00:00<?, ?it/s]
 
 
 
 
 
-    'Helloorldr!l'
+    'HeloWo Word!'
 
 
 
@@ -135,16 +145,16 @@ for p in pop[:10]:
     print(p.string, p.fitness)
 ```
 
-    Helloorldr!l 0.8333333333333334
-    Helloorld!ud 0.8333333333333334
-    Helloorld!!d 0.8333333333333334
-    Helloorld!!d 0.8333333333333334
-    Hello rld!!o 0.8333333333333334
-    Helloorld!!d 0.8333333333333334
-    Helloorld!!l 0.8333333333333334
-    Helloorld!!o 0.8333333333333334
-    Helloorldr!o 0.8333333333333334
-    Helloorld!!o 0.8333333333333334
+    Helo Worrd!! 0.8333333333333334
+    Hllo Worrd!t 0.8333333333333334
+    Helo Worhd!! 0.8333333333333334
+    Helo Worrd!t 0.8333333333333334
+    Helo Worod!! 0.8333333333333334
+    Helo Worrd!H 0.8333333333333334
+    Helo WoArd!! 0.8333333333333334
+    Helo Worhd!! 0.8333333333333334
+    Helo Worrd!! 0.8333333333333334
+    Helo Worrd!! 0.8333333333333334
 
 
 
@@ -152,7 +162,7 @@ for p in pop[:10]:
 plt.figure(figsize=(12, 7))
 plt.xlabel("Generations", fontsize=22)
 plt.ylabel("Fitness", fontsize=22)
-plt.plot(pop_fit)
+plt.plot(pop_fit);
 ```
 
 

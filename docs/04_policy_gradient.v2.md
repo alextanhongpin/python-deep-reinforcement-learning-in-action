@@ -112,12 +112,43 @@ state, reward, done, trunc, info
 
 
 ```python
+%load_ext tensorboard
+%tensorboard --logdir logs
+```
+
+    The tensorboard extension is already loaded. To reload it, use:
+      %reload_ext tensorboard
+
+
+
+
+<iframe id="tensorboard-frame-c5d3401a78451af9" width="100%" height="800" frameborder="0">
+</iframe>
+<script>
+  (function() {
+    const frame = document.getElementById("tensorboard-frame-c5d3401a78451af9");
+    const url = new URL("/", window.location);
+    const port = 6006;
+    if (port) {
+      url.port = port;
+    }
+    frame.src = url;
+  })();
+</script>
+
+
+
+
+```python
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from gymnasium.wrappers import RecordVideo  # pip install moviepy
+from torch.utils.tensorboard import SummaryWriter
 from tqdm.notebook import trange
+
+writer = SummaryWriter("logs")
 
 plt.rcParams["figure.figsize"] = (14, 6)
 ```
@@ -187,6 +218,12 @@ discount_rewards(torch.Tensor([1, 1, 1, 1, 1]))
 
 ```python
 def reinforce(model, optimzer, max_episodes=1000, max_trajectory=500, gamma=0.99):
+    writer.add_hparams(
+        dict(max_episodes=max_episodes, max_trajectory=max_trajectory, gamma=gamma),
+        dict(),
+        run_name="reinforce",
+    )
+
     env = gym.make("CartPole-v1")
     scores = []
     for episode in trange(max_episodes):
@@ -216,6 +253,9 @@ def reinforce(model, optimzer, max_episodes=1000, max_trajectory=500, gamma=0.99
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        writer.add_scalar("reinforce/episodes", len(transitions), episode)
+        writer.add_scalar("reinforce/loss", loss.item(), episode)
     return scores
 ```
 
@@ -232,10 +272,6 @@ ax.set_ylabel("Episode duration")
       0%|          | 0/1000 [00:00<?, ?it/s]
 
 
-    /Users/alextanhongpin/Library/Caches/pypoetry/virtualenvs/python-deep-reinforcement-learning-in-acti-HlKDIbnR-py3.12/lib/python3.12/site-packages/torch/nn/modules/module.py:1736: UserWarning: Implicit dimension choice for softmax has been deprecated. Change the call to include dim=X as an argument.
-      return self._call_impl(*args, **kwargs)
-
-
 
 
 
@@ -245,7 +281,7 @@ ax.set_ylabel("Episode duration")
 
 
     
-![png](04_policy_gradient.v2_files/04_policy_gradient.v2_15_3.png)
+![png](04_policy_gradient.v2_files/04_policy_gradient.v2_16_2.png)
     
 
 
@@ -295,7 +331,7 @@ ax.set_ylabel("Episode duration");
 
 
     
-![png](04_policy_gradient.v2_files/04_policy_gradient.v2_17_1.png)
+![png](04_policy_gradient.v2_files/04_policy_gradient.v2_18_1.png)
     
 
 
@@ -307,7 +343,7 @@ np.mean(scores), np.min(scores), np.max(scores)
 
 
 
-    (285.96, 22, 500)
+    (298.335, 17, 500)
 
 
 
@@ -318,6 +354,11 @@ plt.hist(scores);
 
 
     
-![png](04_policy_gradient.v2_files/04_policy_gradient.v2_19_0.png)
+![png](04_policy_gradient.v2_files/04_policy_gradient.v2_20_0.png)
     
 
+
+
+```python
+writer.add_histogram("reinforce/hist", np.array(scores), bins=50)
+```

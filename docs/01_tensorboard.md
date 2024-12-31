@@ -1,9 +1,33 @@
 ```python
 %load_ext tensorboard
+!rm -rf ./logs
 ```
 
     The tensorboard extension is already loaded. To reload it, use:
       %reload_ext tensorboard
+
+
+
+```python
+%tensorboard --logdir logs
+```
+
+
+
+<iframe id="tensorboard-frame-85bcc7e1be6b723f" width="100%" height="800" frameborder="0">
+</iframe>
+<script>
+  (function() {
+    const frame = document.getElementById("tensorboard-frame-85bcc7e1be6b723f");
+    const url = new URL("/", window.location);
+    const port = 6006;
+    if (port) {
+      url.port = port;
+    }
+    frame.src = url;
+  })();
+</script>
+
 
 
 
@@ -23,29 +47,6 @@ for epoch in range(10):
     loss = random.random()
     writer.add_scalar("Loss/train", loss, epoch)
 ```
-
-
-```python
-%tensorboard --logdir logs
-```
-
-
-
-<iframe id="tensorboard-frame-9110e9a175a267ac" width="100%" height="800" frameborder="0">
-</iframe>
-<script>
-  (function() {
-    const frame = document.getElementById("tensorboard-frame-9110e9a175a267ac");
-    const url = new URL("/", window.location);
-    const port = 6006;
-    if (port) {
-      url.port = port;
-    }
-    frame.src = url;
-  })();
-</script>
-
-
 
 
 ```python
@@ -83,4 +84,9 @@ for step in range(5):
 
 ```python
 writer.close()
+```
+
+
+```python
+
 ```
